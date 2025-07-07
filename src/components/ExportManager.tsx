@@ -86,7 +86,8 @@ export default function ExportManager({ posts, handle, filterReplies }: ExportMa
                         value={format}
                         onChange={(e) => setFormat(e.target.value as 'json' | 'csv')}
                         disabled={isExporting}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                        // bg-white and text-gray-900
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 bg-white text-gray-900"
                     >
                         <option value="json">JSON (Full Data)</option>
                         <option value="csv">CSV (Spreadsheet)</option>

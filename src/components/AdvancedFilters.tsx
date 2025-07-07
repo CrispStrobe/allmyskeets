@@ -29,7 +29,8 @@ export default function AdvancedFilters({ filters, onFiltersChange }: AdvancedFi
         <select
           value={filters.sortBy}
           onChange={(e) => onFiltersChange({ sortBy: e.target.value as Filters['sortBy'] })}
-          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          // bg-white and text-gray-900
+          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
         >
           <option value="newest">Sort: Newest</option>
           <option value="oldest">Sort: Oldest</option>
