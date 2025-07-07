@@ -29,7 +29,7 @@ export default function ExportManager({ posts, handle, filterReplies }: ExportMa
 
     try {
       do {
-        const response = await fetch('/api/feed', {
+        const response: Response = await fetch('/api/feed', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ handle, cursor, filter: filterReplies }),
