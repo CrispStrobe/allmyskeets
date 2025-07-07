@@ -2,12 +2,13 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { type AppBskyFeedDefs, type AppBskyEmbedImages } from '@atproto/api';
+// FIX: Changed from 'import type' to a regular import to use .isView()
+import { AppBskyFeedDefs, AppBskyEmbedImages } from '@atproto/api';
 import AdvancedFilters, { type Filters } from './AdvancedFilters';
 import AnalyticsDashboard from './AnalyticsDashboard';
 import ExportManager from './ExportManager';
 import Thread, { type ThreadView } from './Thread';
-import { Loader2, MessageCircle, BarChart3 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 type FeedViewPost = AppBskyFeedDefs.FeedViewPost;
 type PostView = AppBskyFeedDefs.PostView;
@@ -20,6 +21,13 @@ type PostRecord = {
     }
   }
 };
+
+// FIX: Define a type for our API response
+interface FeedApiResponse {
+  feed: FeedViewPost[];
+  cursor?: string;
+  error?: string;
+}
 
 interface SkeetManagerProps {
   handle: string;
@@ -40,8 +48,6 @@ export default function SkeetManager({
   const [cursor, setCursor] = useState<string | undefined>(initialCursor);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState('');
-  
-  // NEW: State for the "Load All" process
   const [isLoadingAll, setIsLoadingAll] = useState(false);
   const [progress, setProgress] = useState({ fetched: 0 });
 
@@ -70,11 +76,12 @@ export default function SkeetManager({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ handle, cursor, filter: filterReplies }),
       });
-      const data = await response.json();
+      const data: FeedApiResponse = await response.json();
       if (data.error) throw new Error(data.error);
+      
       setFeed(prevFeed => {
         const existingUris = new Set(prevFeed.map(item => item.post.uri));
-        const newUniqueItems = data.feed.filter((item: FeedViewPost) => !existingUris.has(item.post.uri));
+        const newUniqueItems = data.feed.filter((item) => !existingUris.has(item.post.uri));
         return [...prevFeed, ...newUniqueItems];
       });
       setCursor(data.cursor);
@@ -86,15 +93,12 @@ export default function SkeetManager({
     }
   };
 
-  // NEW: Function to loop and load all posts
   const handleLoadAll = async () => {
     setIsLoadingAll(true);
     setProgress({ fetched: initialFeed.length });
     setError('');
-
     let allPosts: FeedViewPost[] = [...initialFeed];
     let currentCursor = initialCursor;
-
     try {
       while (currentCursor) {
         const response = await fetch('/api/feed', {
@@ -102,19 +106,18 @@ export default function SkeetManager({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ handle, cursor: currentCursor, filter: filterReplies }),
         });
-        const data = await response.json();
+        const data: FeedApiResponse = await response.json();
         if (data.error) throw new Error(data.error);
         
         const existingUris = new Set(allPosts.map(item => item.post.uri));
-        const newUniqueItems = data.feed.filter((item: FeedViewPost) => !existingUris.has(item.post.uri));
+        const newUniqueItems = data.feed.filter((item) => !existingUris.has(item.post.uri));
 
         allPosts = allPosts.concat(newUniqueItems);
         currentCursor = data.cursor;
-        
         setFeed(allPosts);
         setProgress({ fetched: allPosts.length });
       }
-      setCursor(undefined); // All posts are loaded
+      setCursor(undefined);
     } catch (err) {
       const e = err as Error;
       setError(e.message || 'Failed to load all posts.');
@@ -123,30 +126,78 @@ export default function SkeetManager({
     }
   };
 
-  const threads = useMemo(() => {
+  const threads = useMemo((): ThreadView[] => {
     const filteredFeed = [...feed].filter(item => {
         const post = item.post;
         const record = post.record as PostRecord;
         if (filters.hideReplies && record.reply) return false;
         if (filters.searchTerm && !record.text.toLowerCase().includes(filters.searchTerm.toLowerCase())) return false;
         if (filters.hasMedia) {
+            // FIX: Use the imported object, not the type, for the check
             const hasImages = AppBskyEmbedImages.isView(post.embed);
             if (!hasImages) return false;
         }
         if (filters.minLikes > 0 && (post.likeCount ?? 0) < filters.minLikes) return false;
         return true;
     });
-    // ... rest of the thread logic is unchanged
+
+    const postsByUri = new Map<string, ThreadView>();
+    const rootThreads: ThreadView[] = [];
+
+    for (const item of filteredFeed) {
+        postsByUri.set(item.post.uri, { post: item, replies: [] });
+    }
+
+    for (const threadView of postsByUri.values()) {
+        const parentUri = (threadView.post.post.record as PostRecord).reply?.parent.uri;
+        if (parentUri && postsByUri.has(parentUri)) {
+            postsByUri.get(parentUri)!.replies!.push(threadView);
+        } else {
+            rootThreads.push(threadView);
+        }
+    }
+
+    return rootThreads.sort((a, b) => {
+        const postA = a.post.post;
+        const postB = b.post.post;
+        switch (filters.sortBy) {
+          case 'oldest': return new Date(postA.indexedAt).getTime() - new Date(postB.indexedAt).getTime();
+          case 'likes': return (postB.likeCount ?? 0) - (postA.likeCount ?? 0);
+          case 'reposts': return (postB.repostCount ?? 0) - (postA.repostCount ?? 0);
+          case 'engagement':
+             const engagementA = (postA.likeCount ?? 0) + (postA.repostCount ?? 0);
+             const engagementB = (postB.likeCount ?? 0) + (postB.repostCount ?? 0);
+             return engagementB - engagementA;
+          default: return new Date(postB.indexedAt).getTime() - new Date(postA.indexedAt).getTime();
+        }
+    });
   }, [feed, filters]);
   
   const processedFeedForExport = useMemo((): PostView[] => {
-    // ... export logic is unchanged
+    const allPosts: PostView[] = [];
+    function flattenThreads(thread: ThreadView) {
+        allPosts.push(thread.post.post);
+        if (thread.replies) {
+            for (const reply of thread.replies) {
+                flattenThreads(reply);
+            }
+        }
+    }
+    threads.forEach(flattenThreads);
+    return allPosts; // FIX: Added missing return statement
   }, [threads]);
 
   return (
     <div>
       <div className="mb-6 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-        {/* ... View mode buttons are unchanged ... */}
+        <div className="flex items-center gap-2">
+          <button onClick={() => setViewMode('feed')} className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition-colors ${viewMode === 'feed' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100 border'}`}>
+            Feed
+          </button>
+          <button onClick={() => setViewMode('analytics')} className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition-colors ${viewMode === 'analytics' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100 border'}`}>
+            Analytics
+          </button>
+        </div>
         <ExportManager posts={processedFeedForExport} handle={handle} filterReplies={filterReplies}/>
       </div>
 
@@ -166,8 +217,6 @@ export default function SkeetManager({
               <Thread key={thread.post.post.uri} thread={thread} hideMedia={hideMedia} />
             ))}
           </div>
-          
-          {/* NEW: Load More / Load All controls */}
           {cursor && (
             <div className="text-center mt-8 flex items-center justify-center gap-4">
               <button onClick={loadMorePosts} disabled={isLoadingMore || isLoadingAll} className="px-6 py-2 font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-gray-400 flex items-center gap-2 mx-auto">
