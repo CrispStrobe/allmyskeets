@@ -21,25 +21,29 @@ const StatCard = ({ title, value, icon: Icon }: { title: string, value: string |
 
 export default function AnalyticsDashboard({ feed }: AnalyticsDashboardProps) {
     const analytics = useMemo(() => {
-        if (!feed.length) return null;
+        // Filter out mere reposts before any calculations
+        const postsOnly = feed.filter(item => !item.reason);
 
-        const totalLikes = feed.reduce((sum, item) => sum + (item.post.likeCount ?? 0), 0);
-        const totalReposts = feed.reduce((sum, item) => sum + (item.post.repostCount ?? 0), 0);
+        if (!postsOnly.length) return null;
+
+        // All subsequent calculations now use the filtered 'postsOnly' array
+        const totalLikes = postsOnly.reduce((sum, item) => sum + (item.post.likeCount ?? 0), 0);
+        const totalReposts = postsOnly.reduce((sum, item) => sum + (item.post.repostCount ?? 0), 0);
         
-        const topPostByLikes = [...feed].sort((a, b) => (b.post.likeCount ?? 0) - (a.post.likeCount ?? 0))[0];
+        const topPostByLikes = [...postsOnly].sort((a, b) => (b.post.likeCount ?? 0) - (a.post.likeCount ?? 0))[0];
 
         const postsByHour: number[] = Array(24).fill(0);
-        feed.forEach(item => {
+        postsOnly.forEach(item => {
             const hour = new Date(item.post.indexedAt).getHours();
             postsByHour[hour]++;
         });
 
         return {
-            totalPosts: feed.length,
+            totalPosts: postsOnly.length,
             totalLikes,
             totalReposts,
-            avgLikes: (totalLikes / feed.length).toFixed(1),
-            avgReposts: (totalReposts / feed.length).toFixed(1),
+            avgLikes: (totalLikes / postsOnly.length).toFixed(1),
+            avgReposts: (totalReposts / postsOnly.length).toFixed(1),
             topPostByLikes,
             postsByHour,
         };

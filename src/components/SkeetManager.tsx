@@ -2,7 +2,6 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-// FIX: Changed from 'import type' to a regular import to use .isView()
 import { AppBskyFeedDefs, AppBskyEmbedImages } from '@atproto/api';
 import AdvancedFilters, { type Filters } from './AdvancedFilters';
 import AnalyticsDashboard from './AnalyticsDashboard';
@@ -22,7 +21,6 @@ type PostRecord = {
   }
 };
 
-// FIX: Define a type for our API response
 interface FeedApiResponse {
   feed: FeedViewPost[];
   cursor?: string;
@@ -56,6 +54,7 @@ export default function SkeetManager({
     sortBy: 'newest',
     hasMedia: false,
     hideReplies: false,
+    hideReposts: false, 
     minLikes: 0,
   });
 
@@ -128,12 +127,16 @@ export default function SkeetManager({
 
   const threads = useMemo((): ThreadView[] => {
     const filteredFeed = [...feed].filter(item => {
+        if (filters.hideReposts && item.reason?.$type === 'app.bsky.feed.defs#reasonRepost') {
+            return false;
+        }
+
         const post = item.post;
         const record = post.record as PostRecord;
         if (filters.hideReplies && record.reply) return false;
         if (filters.searchTerm && !record.text.toLowerCase().includes(filters.searchTerm.toLowerCase())) return false;
         if (filters.hasMedia) {
-            // FIX: Use the imported object, not the type, for the check
+            // Use the imported object, not the type, for the check
             const hasImages = AppBskyEmbedImages.isView(post.embed);
             if (!hasImages) return false;
         }
