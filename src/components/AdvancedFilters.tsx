@@ -1,13 +1,12 @@
 // src/components/AdvancedFilters.tsx
 'use client';
-// **FIX:** Add Heart to the import line below
-import { Filter, ImageIcon, Heart } from 'lucide-react';
+import { ImageIcon, MessageSquareOff, Heart } from 'lucide-react';
 
-// Define the shape of our filters object
 export interface Filters {
   searchTerm: string;
   sortBy: 'newest' | 'oldest' | 'likes' | 'reposts' | 'engagement';
   hasMedia: boolean;
+  hideReplies: boolean;
   minLikes: number;
 }
 
@@ -20,7 +19,6 @@ export default function AdvancedFilters({ filters, onFiltersChange }: AdvancedFi
   return (
     <div className="bg-white rounded-lg shadow-sm p-4 mb-6 border border-gray-200 sticky top-4 z-10">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Search Input */}
         <input
           type="text"
           placeholder="Search in posts..."
@@ -28,8 +26,6 @@ export default function AdvancedFilters({ filters, onFiltersChange }: AdvancedFi
           onChange={(e) => onFiltersChange({ searchTerm: e.target.value })}
           className="lg:col-span-2 w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-
-        {/* Sort Dropdown */}
         <select
           value={filters.sortBy}
           onChange={(e) => onFiltersChange({ sortBy: e.target.value as Filters['sortBy'] })}
@@ -41,8 +37,6 @@ export default function AdvancedFilters({ filters, onFiltersChange }: AdvancedFi
           <option value="reposts">Sort: Most Reposted</option>
           <option value="engagement">Sort: Top Engagement</option>
         </select>
-
-        {/* Minimum Likes Input */}
         <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Heart className="w-4 h-4 text-gray-400" />
@@ -57,7 +51,6 @@ export default function AdvancedFilters({ filters, onFiltersChange }: AdvancedFi
             />
         </div>
       </div>
-        {/* Checkbox Filters */}
       <div className="mt-4 pt-4 border-t border-gray-200 flex items-center gap-6">
         <label className="flex items-center gap-2 text-gray-600 cursor-pointer">
             <input
@@ -68,6 +61,16 @@ export default function AdvancedFilters({ filters, onFiltersChange }: AdvancedFi
             />
             <ImageIcon className="w-4 h-4" />
             <span>Has Media</span>
+        </label>
+        <label className="flex items-center gap-2 text-gray-600 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={filters.hideReplies}
+              onChange={(e) => onFiltersChange({ hideReplies: e.target.checked })}
+              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <MessageSquareOff className="w-4 h-4" />
+            <span>Hide Replies</span>
         </label>
       </div>
     </div>

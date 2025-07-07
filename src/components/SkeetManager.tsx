@@ -1,15 +1,25 @@
-// components/SkeetManager.tsx
+// src/components/SkeetManager.tsx
 'use client';
 
 import { useState, useMemo } from 'react';
-import { type AppBskyFeedDefs } from '@atproto/api';
-import Skeet from './Skeet';
+import { type AppBskyFeedDefs, type AppBskyEmbedImages } from '@atproto/api';
 import AdvancedFilters, { type Filters } from './AdvancedFilters';
 import AnalyticsDashboard from './AnalyticsDashboard';
 import ExportManager from './ExportManager';
+import Thread, { type ThreadView } from './Thread';
 import { Loader2, MessageCircle, BarChart3 } from 'lucide-react';
 
 type FeedViewPost = AppBskyFeedDefs.FeedViewPost;
+type PostView = AppBskyFeedDefs.PostView;
+type PostRecord = {
+  text: string;
+  createdAt: string;
+  reply?: {
+    parent: {
+      uri: string;
+    }
+  }
+};
 
 interface SkeetManagerProps {
   handle: string;
@@ -35,6 +45,7 @@ export default function SkeetManager({
     searchTerm: '',
     sortBy: 'newest',
     hasMedia: false,
+    hideReplies: false,
     minLikes: 0,
   });
 
@@ -57,28 +68,59 @@ export default function SkeetManager({
       });
       const data = await response.json();
       if (data.error) throw new Error(data.error);
-      setFeed(prevFeed => [...prevFeed, ...data.feed]);
+      setFeed(prevFeed => {
+        const existingUris = new Set(prevFeed.map(item => item.post.uri));
+        const newUniqueItems = data.feed.filter((item: FeedViewPost) => !existingUris.has(item.post.uri));
+        return [...prevFeed, ...newUniqueItems];
+      });
       setCursor(data.cursor);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load more posts.');
+    } catch (err) {
+      const e = err as Error;
+      setError(e.message || 'Failed to load more posts.');
     } finally {
       setIsLoadingMore(false);
     }
   };
 
-  const processedFeedForRender = useMemo(() => {
-    return [...feed]
-      .filter(item => {
+  const threads = useMemo(() => {
+    const filteredFeed = [...feed].filter(item => {
         const post = item.post;
-        const record = post.record as any;
+        const record = post.record as PostRecord;
+
+        if (filters.hideReplies && record.reply) return false;
         if (filters.searchTerm && !record.text.toLowerCase().includes(filters.searchTerm.toLowerCase())) return false;
-        if (filters.hasMedia && !post.embed) return false;
+        
+        if (filters.hasMedia) {
+            const hasImages = post.embed?.$type === 'app.bsky.embed.images#view';
+            const hasRecordWithImages = post.embed?.$type === 'app.bsky.embed.recordWithMedia#view' &&
+                                      (post.embed.media as AppBskyEmbedImages.View)?.$type === 'app.bsky.embed.images#view';
+            if (!hasImages && !hasRecordWithImages) return false;
+        }
+        
         if (filters.minLikes > 0 && (post.likeCount ?? 0) < filters.minLikes) return false;
+        
         return true;
-      })
-      .sort((a, b) => {
-        const postA = a.post;
-        const postB = b.post;
+    });
+
+    const postsByUri = new Map<string, ThreadView>();
+    const rootThreads: ThreadView[] = [];
+
+    for (const item of filteredFeed) {
+        postsByUri.set(item.post.uri, { post: item, replies: [] });
+    }
+
+    for (const threadView of postsByUri.values()) {
+        const parentUri = (threadView.post.post.record as PostRecord).reply?.parent.uri;
+        if (parentUri && postsByUri.has(parentUri)) {
+            postsByUri.get(parentUri)!.replies!.push(threadView);
+        } else {
+            rootThreads.push(threadView);
+        }
+    }
+
+    return rootThreads.sort((a, b) => {
+        const postA = a.post.post;
+        const postB = b.post.post;
         switch (filters.sortBy) {
           case 'oldest': return new Date(postA.indexedAt).getTime() - new Date(postB.indexedAt).getTime();
           case 'likes': return (postB.likeCount ?? 0) - (postA.likeCount ?? 0);
@@ -89,12 +131,22 @@ export default function SkeetManager({
              return engagementB - engagementA;
           default: return new Date(postB.indexedAt).getTime() - new Date(postA.indexedAt).getTime();
         }
-      });
+    });
   }, [feed, filters]);
   
-  const processedFeedForExport = useMemo(() => {
-    return processedFeedForRender.map(item => item.post);
-  }, [processedFeedForRender]);
+  const processedFeedForExport = useMemo((): PostView[] => {
+    const allPosts: PostView[] = [];
+    function flattenThreads(thread: ThreadView) {
+        allPosts.push(thread.post.post);
+        if (thread.replies) {
+            for (const reply of thread.replies) {
+                flattenThreads(reply);
+            }
+        }
+    }
+    threads.forEach(flattenThreads);
+    return allPosts;
+  }, [threads]);
 
   return (
     <div>
@@ -107,7 +159,7 @@ export default function SkeetManager({
             <BarChart3 className="w-4 h-4"/> Analytics
           </button>
         </div>
-        <ExportManager posts={processedFeedForExport} handle={handle} />
+        <ExportManager posts={processedFeedForExport} handle={handle} filterReplies={filterReplies}/>
       </div>
 
       {viewMode === 'analytics' && <AnalyticsDashboard feed={feed} />}
@@ -121,9 +173,9 @@ export default function SkeetManager({
               Hide Media
             </label>
           </div>
-          <div className="space-y-4">
-            {processedFeedForRender.map(item => (
-              <Skeet key={item.post.uri} post={item.post} hideMedia={hideMedia} />
+          <div className="space-y-6">
+            {threads.map(thread => (
+              <Thread key={thread.post.post.uri} thread={thread} hideMedia={hideMedia} />
             ))}
           </div>
           {cursor && (

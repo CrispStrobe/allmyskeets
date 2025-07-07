@@ -1,6 +1,6 @@
 // components/SmartSearch.tsx
 'use client';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { type AppBskyActorDefs } from '@atproto/api';
 import { Loader2, Search } from 'lucide-react';
@@ -17,13 +17,12 @@ export default function SmartSearch({ includeReplies, startWithMediaHidden }: Sm
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   
-  // Debounce the search input
-  const debounce = useCallback((func: Function, delay: number) => {
+  const debounce = useCallback((func: (term: string) => void, delay: number) => {
     let timeoutId: NodeJS.Timeout;
-    return (...args: any) => {
+    return (term: string) => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
-        func(...args);
+        func(term);
       }, delay);
     };
   }, []);
@@ -51,7 +50,7 @@ export default function SmartSearch({ includeReplies, startWithMediaHidden }: Sm
     }
   };
 
-  const debouncedSearch = useCallback(debounce(searchForActors, 300), []);
+  const debouncedSearch = useCallback(debounce(searchForActors, 300), [debounce]);
   
   useEffect(() => {
     debouncedSearch(query);

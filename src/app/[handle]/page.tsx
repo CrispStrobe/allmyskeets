@@ -1,4 +1,6 @@
 // src/app/[handle]/page.tsx
+export const dynamic = 'force-dynamic'; // Add this line
+
 import { getAuthenticatedAgent } from '@/lib/bsky-agent';
 import { type AppBskyActorDefs, type AppBskyFeedDefs } from '@atproto/api';
 import Link from 'next/link';

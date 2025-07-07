@@ -2,8 +2,8 @@
 'use client';
 import { useMemo } from 'react';
 import { type AppBskyFeedDefs } from '@atproto/api';
-import { BarChart3, Heart, Repeat, MessageCircle, Clock, Calendar, TrendingUp, Star } from 'lucide-react';
-import Skeet from './Skeet'; // We'll use this to display the top post
+import { BarChart3, Heart, Repeat, MessageCircle, Clock, TrendingUp, Star } from 'lucide-react';
+import Skeet from './Skeet';
 
 type FeedViewPost = AppBskyFeedDefs.FeedViewPost;
 
@@ -11,7 +11,6 @@ interface AnalyticsDashboardProps {
   feed: FeedViewPost[];
 }
 
-// A small component for displaying individual stats
 const StatCard = ({ title, value, icon: Icon }: { title: string, value: string | number, icon: React.ElementType }) => (
     <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 text-center">
         <Icon className="w-6 h-6 text-gray-400 mx-auto mb-2" />
@@ -56,7 +55,7 @@ export default function AnalyticsDashboard({ feed }: AnalyticsDashboardProps) {
         );
     }
     
-    const maxHourlyPosts = Math.max(...analytics.postsByHour);
+    const maxHourlyPosts = Math.max(...analytics.postsByHour, 1);
 
     return (
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 space-y-8">
@@ -64,8 +63,6 @@ export default function AnalyticsDashboard({ feed }: AnalyticsDashboardProps) {
                 <BarChart3 className="w-5 h-5" />
                 Analytics Dashboard
             </h2>
-
-            {/* --- Key Metrics --- */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <StatCard title="Loaded Posts" value={analytics.totalPosts} icon={MessageCircle} />
                 <StatCard title="Total Likes" value={analytics.totalLikes.toLocaleString()} icon={Heart} />
@@ -73,8 +70,6 @@ export default function AnalyticsDashboard({ feed }: AnalyticsDashboardProps) {
                 <StatCard title="Avg. Likes" value={analytics.avgLikes} icon={TrendingUp} />
                 <StatCard title="Avg. Reposts" value={analytics.avgReposts} icon={TrendingUp} />
             </div>
-
-            {/* --- Posting Activity By Hour --- */}
             <div>
                 <h3 className="font-semibold text-gray-700 mb-4 flex items-center gap-2"><Clock className="w-5 h-5"/>Posting Activity by Hour (Local Time)</h3>
                 <div className="flex items-end justify-between gap-1 h-32 bg-gray-50 p-4 rounded-lg">
@@ -82,7 +77,7 @@ export default function AnalyticsDashboard({ feed }: AnalyticsDashboardProps) {
                         <div key={hour} className="flex-1 flex flex-col items-center justify-end group">
                             <div 
                                 className="w-full bg-blue-200 hover:bg-blue-400 transition-all" 
-                                style={{ height: `${count > 0 ? (count / maxHourlyPosts) * 100 : 1}%` }}
+                                style={{ height: `${(count / maxHourlyPosts) * 100}%`, minHeight: '1px' }}
                                 title={`${count} posts at ${hour}:00`}
                             ></div>
                             <span className="text-xs text-gray-400 mt-1">{hour % 6 === 0 ? hour : ''}</span>
@@ -90,8 +85,6 @@ export default function AnalyticsDashboard({ feed }: AnalyticsDashboardProps) {
                     ))}
                 </div>
             </div>
-
-            {/* --- Top Post --- */}
             <div>
                  <h3 className="font-semibold text-gray-700 mb-4 flex items-center gap-2"><Star className="w-5 h-5"/>Top Post by Likes</h3>
                  <Skeet post={analytics.topPostByLikes.post} />

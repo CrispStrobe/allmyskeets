@@ -2,8 +2,8 @@
 import { type AppBskyFeedDefs } from '@atproto/api';
 
 type PostView = AppBskyFeedDefs.PostView;
+type PostRecord = { text: string; createdAt: string; };
 
-// Helper function to trigger a file download in the browser
 function triggerDownload(content: string, mimeType: string, fileName: string) {
     const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
@@ -16,11 +16,6 @@ function triggerDownload(content: string, mimeType: string, fileName: string) {
     URL.revokeObjectURL(url);
 }
 
-/**
- * Exports an array of posts as a JSON file.
- * @param posts The array of posts to export.
- * @param handle The user handle, for the filename.
- */
 export function exportAsJson(posts: PostView[], handle: string) {
     const dataStr = JSON.stringify({
         user: handle,
@@ -31,15 +26,9 @@ export function exportAsJson(posts: PostView[], handle: string) {
     triggerDownload(dataStr, 'application/json', `skeets-${handle}-${Date.now()}.json`);
 }
 
-/**
- * Exports an array of posts as a CSV file.
- * @param posts The array of posts to export.
- * @param handle The user handle, for the filename.
- */
 export function exportAsCsv(posts: PostView[], handle: string) {
     const headers = ['uri', 'text', 'likes', 'reposts', 'replies', 'createdAt'];
     
-    // Function to safely handle CSV fields that might contain commas or quotes
     const escapeCsvField = (field: string | number): string => {
         const str = String(field);
         if (str.includes(',') || str.includes('"') || str.includes('\n')) {
@@ -49,7 +38,7 @@ export function exportAsCsv(posts: PostView[], handle: string) {
     };
 
     const rows = posts.map(post => {
-        const record = post.record as any;
+        const record = post.record as PostRecord;
         return [
             post.uri,
             escapeCsvField(record.text),

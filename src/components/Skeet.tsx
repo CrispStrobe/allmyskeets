@@ -4,28 +4,21 @@ import Image from 'next/image';
 import { Heart, Repeat, MessageCircle } from 'lucide-react';
 
 type PostView = AppBskyFeedDefs.PostView;
+type PostRecord = { text: string; createdAt: string; };
 
 const Stat = ({ icon: Icon, count }: { icon: React.ElementType, count: number }) => (
   <div className="flex items-center gap-1.5 text-gray-500">
     <Icon className="w-4 h-4" />
-    <span className="text-sm font-medium">{count > 0 ? count : 0}</span>
+    <span className="text-sm font-medium">{count > 0 ? count.toLocaleString() : 0}</span>
   </div>
 );
 
-export default function Skeet({
-  post,
-  isReply = false,
-  hideMedia = false,
-}: {
-  post: PostView;
-  isReply?: boolean;
-  hideMedia?: boolean;
-}) {
-  const record = post.record as any;
+export default function Skeet({ post, hideMedia = false }: { post: PostView; hideMedia?: boolean; }) {
+  const record = post.record as PostRecord;
   const embed = post.embed;
 
   return (
-    <div className={`p-4 bg-white rounded-lg shadow-sm border border-gray-200 ${isReply ? 'ml-8' : ''}`}>
+    <div className="p-4 bg-white rounded-lg shadow-sm border border-gray-200">
       <p className="text-gray-800 whitespace-pre-wrap">{record.text}</p>
 
       {!hideMedia && embed && (
