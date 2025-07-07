@@ -1,6 +1,6 @@
 // src/components/QuotePostView.tsx
 'use client';
-import { type AppBskyEmbedRecord, type AppBskyFeedDefs } from '@atproto/api';
+import { type AppBskyEmbedRecord } from '@atproto/api'; // , type AppBskyFeedDefs omitted for now
 import Image from 'next/image';
 
 type ViewRecord = AppBskyEmbedRecord.ViewRecord;

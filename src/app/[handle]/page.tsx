@@ -15,9 +15,8 @@ interface PageData {
   initialCursor?: string;
 }
 
-// FIX: The function now accepts the hideReposts parameter, though it's currently unused on the server-side
-// fetch, it's good practice to plumb it through for future use.
-async function getInitialPageData(handle: string, includeReplies: boolean, hideReposts: boolean): Promise<{ data?: PageData; error?: string }> {
+// , hideReposts: boolean is omitted for now, as it's currently unused on the server-side
+async function getInitialPageData(handle: string, includeReplies: boolean): Promise<{ data?: PageData; error?: string }> {
   try {
     const agent = await getAuthenticatedAgent();
     // Note: The Bluesky API doesn't have a server-side filter for reposts, so `hideReposts` is
@@ -62,7 +61,7 @@ export default async function UserSkeetsPage({
   const initialHideMedia = resolvedSearchParams.hideMedia === 'true';
 
   // FIX: Pass the `hideReposts` variable to the data fetching function.
-  const { data, error } = await getInitialPageData(handle, includeReplies, hideReposts);
+  const { data, error } = await getInitialPageData(handle, includeReplies);
 
   if (error) {
     return (

@@ -53,6 +53,8 @@ export default function Skeet({ post, hideMedia = false }: { post: PostView; hid
           {AppBskyEmbedExternal.isView(embed) && (
              <a href={embed.external.uri} target="_blank" rel="noopener noreferrer" className="mt-2 block border border-gray-200 rounded-lg overflow-hidden hover:border-gray-300 transition-colors">
               {embed.external.thumb && (
+                // Next.js prefers its own <Image /> component for optimization. However, for external link card thumbnails, the image can come from any domain, which we can't pre-configure. Therefore, using a standard <img> here.
+                // eslint-disable-next-line @next/next/no-img-element
                 <img src={embed.external.thumb} alt={embed.external.title} className="w-full h-32 object-cover" />
               )}
               <div className="p-3">
