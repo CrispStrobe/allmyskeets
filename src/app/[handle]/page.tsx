@@ -42,16 +42,20 @@ async function getInitialPageData(handle: string, includeReplies: boolean): Prom
   }
 }
 
-// @ts-expect-error - Bypassing a suspected Next.js 15 type inference bug
 export default async function UserSkeetsPage({
-  params: { handle },
+  params,
   searchParams,
 }: {
-  params: { handle: string };
-  searchParams: { [key: string]: string | string[] | undefined };
+  params: Promise<{ handle: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const includeReplies = searchParams.replies !== 'false';
-  const initialHideMedia = searchParams.hideMedia === 'true';
+  // Await the params and searchParams promises
+  const resolvedParams = await params;
+  const resolvedSearchParams = await searchParams;
+  
+  const { handle } = resolvedParams;
+  const includeReplies = resolvedSearchParams.replies !== 'false';
+  const initialHideMedia = resolvedSearchParams.hideMedia === 'true';
 
   const { data, error } = await getInitialPageData(handle, includeReplies);
 
