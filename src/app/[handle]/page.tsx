@@ -42,7 +42,7 @@ async function getInitialPageData(handle: string, includeReplies: boolean): Prom
   }
 }
 
-// @ts-ignore - Bypassing a suspected Next.js 15 type inference bug
+// @ts-expect-error - Bypassing a suspected Next.js 15 type inference bug
 export default async function UserSkeetsPage({
   params: { handle },
   searchParams,
