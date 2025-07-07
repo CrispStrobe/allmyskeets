@@ -9,12 +9,6 @@ import Image from 'next/image';
 import SkeetManager from '@/components/SkeetManager';
 import { ArrowLeft, User, Users, MessageCircle } from 'lucide-react';
 
-// FIX: Define the props type explicitly
-interface UserSkeetsPageProps {
-  params: { handle: string };
-  searchParams: { [key: string]: string | string[] | undefined };
-}
-
 interface PageData {
   profile: AppBskyActorDefs.ProfileViewDetailed;
   initialFeed: AppBskyFeedDefs.FeedViewPost[];
@@ -48,11 +42,16 @@ async function getInitialPageData(handle: string, includeReplies: boolean): Prom
   }
 }
 
-// FIX: Use the explicitly defined props type
-export default async function UserSkeetsPage({ params, searchParams }: UserSkeetsPageProps) {
+// FIX: Destructure params and searchParams directly in the function signature
+export default async function UserSkeetsPage({
+  params: { handle },
+  searchParams,
+}: {
+  params: { handle: string };
+  searchParams: { [key: string]: string | string[] | undefined };
+}) {
   const includeReplies = searchParams.replies !== 'false';
   const initialHideMedia = searchParams.hideMedia === 'true';
-  const handle = params.handle;
 
   const { data, error } = await getInitialPageData(handle, includeReplies);
 
