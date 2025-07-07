@@ -15,9 +15,13 @@ interface PageData {
   initialCursor?: string;
 }
 
-async function getInitialPageData(handle: string, includeReplies: boolean): Promise<{ data?: PageData; error?: string }> {
+// FIX: The function now accepts the hideReposts parameter, though it's currently unused on the server-side
+// fetch, it's good practice to plumb it through for future use.
+async function getInitialPageData(handle: string, includeReplies: boolean, hideReposts: boolean): Promise<{ data?: PageData; error?: string }> {
   try {
     const agent = await getAuthenticatedAgent();
+    // Note: The Bluesky API doesn't have a server-side filter for reposts, so `hideReposts` is
+    // handled on the client. We pass `includeReplies` to determine the initial post filter.
     const filter = includeReplies ? 'posts_with_replies' : 'posts_no_replies';
 
     const [profileRes, feedRes] = await Promise.all([
@@ -49,15 +53,16 @@ export default async function UserSkeetsPage({
   params: Promise<{ handle: string }>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  // Await the params and searchParams promises
   const resolvedParams = await params;
   const resolvedSearchParams = await searchParams;
   
   const { handle } = resolvedParams;
   const includeReplies = resolvedSearchParams.replies !== 'false';
+  const hideReposts = resolvedSearchParams.hideReposts === 'true'; 
   const initialHideMedia = resolvedSearchParams.hideMedia === 'true';
 
-  const { data, error } = await getInitialPageData(handle, includeReplies);
+  // FIX: Pass the `hideReposts` variable to the data fetching function.
+  const { data, error } = await getInitialPageData(handle, includeReplies, hideReposts);
 
   if (error) {
     return (
@@ -104,6 +109,7 @@ export default async function UserSkeetsPage({
         initialFeed={data.initialFeed}
         initialCursor={data.initialCursor}
         initialHideMedia={initialHideMedia}
+        initialHideReposts={hideReposts} 
         filterReplies={includeReplies ? 'posts_with_replies' : 'posts_no_replies'}
       />
     </main>

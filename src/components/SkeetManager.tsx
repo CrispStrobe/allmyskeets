@@ -32,6 +32,7 @@ interface SkeetManagerProps {
   initialFeed: FeedViewPost[];
   initialCursor?: string;
   initialHideMedia: boolean;
+  initialHideReposts: boolean;
   filterReplies: 'posts_with_replies' | 'posts_no_replies';
 }
 
@@ -40,6 +41,7 @@ export default function SkeetManager({
   initialFeed,
   initialCursor,
   initialHideMedia,
+  initialHideReposts,
   filterReplies
 }: SkeetManagerProps) {
   const [feed, setFeed] = useState<FeedViewPost[]>(initialFeed);
@@ -54,7 +56,7 @@ export default function SkeetManager({
     sortBy: 'newest',
     hasMedia: false,
     hideReplies: false,
-    hideReposts: false, 
+    hideReposts: initialHideReposts, 
     minLikes: 0,
   });
 

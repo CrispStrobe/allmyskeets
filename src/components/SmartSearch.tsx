@@ -1,4 +1,4 @@
-// components/SmartSearch.tsx
+// src/components/SmartSearch.tsx
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -8,10 +8,11 @@ import Image from 'next/image';
 
 interface SmartSearchProps {
   includeReplies: boolean;
+  hideReposts: boolean;
   startWithMediaHidden: boolean;
 }
 
-export default function SmartSearch({ includeReplies, startWithMediaHidden }: SmartSearchProps) {
+export default function SmartSearch({ includeReplies, hideReposts, startWithMediaHidden }: SmartSearchProps) {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<AppBskyActorDefs.ProfileView[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -50,20 +51,34 @@ export default function SmartSearch({ includeReplies, startWithMediaHidden }: Sm
     }
   };
 
-  const debouncedSearch = useCallback(debounce(searchForActors, 300), [debounce]); // eslint-disable-line react-hooks/exhaustive-deps
+  const debouncedSearch = useCallback(debounce(searchForActors, 300), [debounce]);
   
   useEffect(() => {
     debouncedSearch(query);
   }, [query, debouncedSearch]);
 
-  const handleSubmit = (handle: string) => {
+  const navigateToProfile = (handle: string) => {
     if (!handle) return;
     const params = new URLSearchParams();
     params.set('replies', String(includeReplies));
+    params.set('hideReposts', String(hideReposts));
     params.set('hideMedia', String(startWithMediaHidden));
     router.push(`/${handle}?${params.toString()}`);
   };
   
+  // FIX: This function is now smarter about what it navigates to.
+  const handleFetchClick = () => {
+    // If the query looks like a full handle, use it.
+    if (query.includes('.')) {
+        navigateToProfile(query);
+    } 
+    // Otherwise, if there are suggestions, use the first one.
+    else if (suggestions.length > 0) {
+        navigateToProfile(suggestions[0].handle);
+    }
+    // If neither, do nothing to prevent the error.
+  };
+
   return (
     <div className="relative w-full max-w-lg mx-auto">
         <div className="flex gap-2">
@@ -75,14 +90,14 @@ export default function SmartSearch({ includeReplies, startWithMediaHidden }: Sm
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleFetchClick()}
                     placeholder="Search by handle or display name..."
-                    // bg-white and text-gray-900
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
                 />
                 {isLoading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 animate-spin" />}
             </div>
              <button
-                onClick={() => handleSubmit(query)}
+                onClick={handleFetchClick}
                 className="px-4 py-2 font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700"
              >
                 Fetch
@@ -94,7 +109,7 @@ export default function SmartSearch({ includeReplies, startWithMediaHidden }: Sm
                 {suggestions.map(actor => (
                     <button
                         key={actor.did}
-                        onClick={() => handleSubmit(actor.handle)}
+                        onClick={() => navigateToProfile(actor.handle)}
                         className="w-full text-left px-4 py-3 hover:bg-gray-100 flex items-center gap-3"
                     >
                         <Image src={actor.avatar ?? '/default-avatar.png'} alt={actor.displayName ?? ''} width={40} height={40} className="rounded-full" />

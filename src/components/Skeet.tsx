@@ -1,7 +1,8 @@
-// components/Skeet.tsx
-import { type AppBskyEmbedImages, type AppBskyFeedDefs } from '@atproto/api';
+// src/components/Skeet.tsx
+import { type AppBskyFeedDefs, AppBskyEmbedImages, AppBskyEmbedRecord,AppBskyEmbedExternal } from '@atproto/api';
 import Image from 'next/image';
 import { Heart, Repeat, MessageCircle } from 'lucide-react';
+import QuotePostView from './QuotePostView';
 
 type PostView = AppBskyFeedDefs.PostView;
 type PostRecord = { text: string; createdAt: string; };
@@ -23,9 +24,10 @@ export default function Skeet({ post, hideMedia = false }: { post: PostView; hid
 
       {!hideMedia && embed && (
         <div className="mt-3">
-          {embed.$type === 'app.bsky.embed.images#view' && (
+          {/* Check for Image embeds */}
+          {AppBskyEmbedImages.isView(embed) && (
             <div className="grid grid-cols-2 gap-2">
-              {(embed as AppBskyEmbedImages.View).images.map(image => (
+              {embed.images.map(image => (
                 <div key={image.fullsize} className="relative aspect-video">
                   <Image
                     src={image.thumb}
@@ -36,6 +38,29 @@ export default function Skeet({ post, hideMedia = false }: { post: PostView; hid
                 </div>
               ))}
             </div>
+          )}
+
+          {/* Check for Quote Post embeds */}
+          {AppBskyEmbedRecord.isView(embed) && (
+            <div>
+              {AppBskyEmbedRecord.isViewRecord(embed.record) && <QuotePostView record={embed.record} />}
+              {AppBskyEmbedRecord.isViewNotFound(embed.record) && <p className="text-sm text-gray-500 border rounded-lg p-3 mt-2">Quoted post not found.</p>}
+              {AppBskyEmbedRecord.isViewBlocked(embed.record) && <p className="text-sm text-gray-500 border rounded-lg p-3 mt-2">Post from a blocked account.</p>}
+            </div>
+          )}
+          
+          {/* Check for External Link card embeds */}
+          {AppBskyEmbedExternal.isView(embed) && (
+             <a href={embed.external.uri} target="_blank" rel="noopener noreferrer" className="mt-2 block border border-gray-200 rounded-lg overflow-hidden hover:border-gray-300 transition-colors">
+              {embed.external.thumb && (
+                <img src={embed.external.thumb} alt={embed.external.title} className="w-full h-32 object-cover" />
+              )}
+              <div className="p-3">
+                <p className="text-xs text-gray-500">{new URL(embed.external.uri).hostname}</p>
+                <p className="font-semibold text-gray-800">{embed.external.title}</p>
+                <p className="text-sm text-gray-600 line-clamp-2">{embed.external.description}</p>
+              </div>
+            </a>
           )}
         </div>
       )}
