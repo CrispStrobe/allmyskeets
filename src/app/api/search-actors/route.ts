@@ -24,8 +24,9 @@ export async function POST(request: Request) {
     // Return the list of found actors
     return NextResponse.json({ actors: response.data.actors });
 
-  } catch (error: any) {
-    console.error('Actor Search API Route Error:', error);
+  } catch (error) {
+    const e = error as Error;
+    console.error('Actor Search API Route Error:', e);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

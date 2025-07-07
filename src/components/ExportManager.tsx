@@ -1,4 +1,4 @@
-// components/ExportManager.tsx
+// src/components/ExportManager.tsx
 'use client';
 
 import { useState } from 'react';
@@ -9,28 +9,21 @@ import { Download, Loader2 } from 'lucide-react';
 type PostView = AppBskyFeedDefs.PostView;
 type FeedViewPost = AppBskyFeedDefs.FeedViewPost;
 
-interface ExportManagerProps {
-  // The currently filtered and displayed posts
-  filteredPosts: PostView[];
-  // The handle of the user for API calls and filenames
+export interface ExportManagerProps {
+  posts: PostView[];
   handle: string;
-  // The filter to use for fetching all posts
   filterReplies: 'posts_with_replies' | 'posts_no_replies';
 }
 
-export default function ExportManager({ filteredPosts, handle, filterReplies }: ExportManagerProps) {
+export default function ExportManager({ posts, handle, filterReplies }: ExportManagerProps) {
   const [showOptions, setShowOptions] = useState(false);
   const [format, setFormat] = useState<'json' | 'csv'>('json');
-  
-  // New state for the "Export All" process
   const [isExporting, setIsExporting] = useState(false);
   const [progress, setProgress] = useState({ fetched: 0 });
 
-  // --- NEW: Function to fetch all posts ---
   const handleExportAll = async () => {
     setIsExporting(true);
     setProgress({ fetched: 0 });
-
     let allPosts: PostView[] = [];
     let cursor: string | undefined = undefined;
 
@@ -42,37 +35,32 @@ export default function ExportManager({ filteredPosts, handle, filterReplies }: 
           body: JSON.stringify({ handle, cursor, filter: filterReplies }),
         });
         const data = await response.json();
-
         if (data.error) throw new Error(data.error);
-
         const newPosts = data.feed.map((item: FeedViewPost) => item.post);
         allPosts = allPosts.concat(newPosts);
         cursor = data.cursor;
         setProgress({ fetched: allPosts.length });
-
       } while (cursor);
       
-      // Once the loop is done, trigger the download
       if (format === 'json') {
         exportAsJson(allPosts, handle);
       } else if (format === 'csv') {
         exportAsCsv(allPosts, handle);
       }
-
     } catch (err) {
-      console.error("Export all failed:", err);
+      const e = err as Error;
+      console.error("Export all failed:", e);
       alert("An error occurred during the export process. Please check the console.");
     } finally {
       setIsExporting(false);
     }
   };
   
-  // Function to export only the currently visible posts
   const handleExportFiltered = () => {
      if (format === 'json') {
-      exportAsJson(filteredPosts, handle);
+      exportAsJson(posts, handle);
     } else if (format === 'csv') {
-      exportAsCsv(filteredPosts, handle);
+      exportAsCsv(posts, handle);
     }
     setShowOptions(false);
   }
@@ -104,17 +92,14 @@ export default function ExportManager({ filteredPosts, handle, filterReplies }: 
                         <option value="csv">CSV (Spreadsheet)</option>
                     </select>
                 </div>
-                
-                {/* --- UPDATED: Two distinct export buttons --- */}
                 <div className="space-y-2 pt-2 border-t border-gray-200">
                     <button
                         onClick={handleExportFiltered}
                         disabled={isExporting}
                         className="w-full text-center px-4 py-2 bg-blue-100 text-blue-700 font-semibold rounded-lg hover:bg-blue-200 disabled:opacity-50"
                     >
-                        Export Filtered ({filteredPosts.length} posts)
+                        Export Filtered ({posts.length} posts)
                     </button>
-                    
                     <button
                         onClick={handleExportAll}
                         disabled={isExporting}

@@ -39,8 +39,9 @@ async function getInitialPageData(handle: string, includeReplies: boolean): Prom
     }));
 
     return { data: plainData };
-  } catch (error: any) {
-    if (error.message.includes('Profile not found')) {
+  } catch (error) {
+    const e = error as Error;
+    if (e.message.includes('Profile not found')) {
       return { error: `Profile not found for "${handle}". Please check the handle.` };
     }
     console.error("Server Fetch Error:", error);

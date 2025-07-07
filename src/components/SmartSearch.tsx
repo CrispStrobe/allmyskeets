@@ -50,7 +50,7 @@ export default function SmartSearch({ includeReplies, startWithMediaHidden }: Sm
     }
   };
 
-  const debouncedSearch = useCallback(debounce(searchForActors, 300), [debounce]);
+  const debouncedSearch = useCallback(debounce(searchForActors, 300), [debounce]); // eslint-disable-line react-hooks/exhaustive-deps
   
   useEffect(() => {
     debouncedSearch(query);

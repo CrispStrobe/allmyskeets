@@ -1,5 +1,6 @@
 // src/lib/bsky-agent.ts
-import { BskyAgent, AtpSessionData } from '@atproto/api';
+import { BskyAgent } from '@atproto/api';
+// , AtpSessionData: not used for now
 
 // This is a singleton. We'll reuse the agent across requests.
 const agent = new BskyAgent({

@@ -28,8 +28,9 @@ export async function POST(request: Request) {
       cursor: response.data.cursor,
     });
 
-  } catch (error: any) {
-    console.error('API Route Error:', error);
+  } catch (error) {
+    const e = error as Error;
+    console.error('API Route Error:', e);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
